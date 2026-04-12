@@ -3,6 +3,7 @@ import sys
 from typing import List, Tuple
 
 from .checker import InstalledChecker
+from .conflict import ConflictReport, check_conflicts
 from .installer import InstallResult, install_wheel
 from .parser import parse_wheel, WheelInfo
 
@@ -42,15 +43,26 @@ def _analyze(
     return skipped, to_install
 
 
-def _confirm(num_install: int, yes: bool) -> bool:
-    if yes or num_install == 0:
+def _confirm(message: str, yes: bool) -> bool:
+    if yes:
         return True
     try:
-        answer = input(f"\n{num_install} to install. Continue? [y/N]: ").strip().lower()
+        answer = input(f"{message} [y/N]: ").strip().lower()
     except (EOFError, KeyboardInterrupt):
         print()
         return False
     return answer == "y"
+
+
+def _print_conflicts(report: ConflictReport) -> None:
+    type_labels = {
+        "installed_mismatch": "VERSION MISMATCH",
+        "inter_wheel": "WHEEL CONFLICT",
+        "missing": "MISSING DEPENDENCY",
+    }
+    for c in report.conflicts:
+        label = type_labels.get(c.conflict_type, "CONFLICT")
+        print(f"  {label}: {c.detail}")
 
 
 def cmd_install(args: argparse.Namespace) -> int:
@@ -73,16 +85,41 @@ def cmd_install(args: argparse.Namespace) -> int:
     print(f"\n{len(skipped)} skipped, {len(to_install)} to install")
 
     if args.dry_run:
+        if not args.skip_conflict_check and to_install:
+            print("\nChecking for version conflicts...")
+            report = check_conflicts(to_install, checker)
+            if report.has_conflicts:
+                _print_conflicts(report)
+                print(f"\n{len(report.conflicts)} conflict(s) found")
+            else:
+                print("  No conflicts detected")
         return 0
 
-    if not _confirm(len(to_install), args.yes):
+    if not args.skip_conflict_check and to_install:
+        print("\nChecking for version conflicts...")
+        report = check_conflicts(to_install, checker)
+        if report.has_conflicts:
+            _print_conflicts(report)
+            if not _confirm(
+                f"\n{len(report.conflicts)} conflict(s) found. Continue anyway?",
+                args.yes,
+            ):
+                print("Aborted.")
+                return 0
+        else:
+            print("  No conflicts detected")
+
+    if not to_install:
+        return 0
+
+    if not _confirm(f"\n{len(to_install)} to install. Continue?", args.yes):
         print("Aborted.")
         return 0
 
     results: List[InstallResult] = []
     for info in to_install:
         print(f"\nInstalling {info.filename}...", end=" ")
-        res = install_wheel(info.filename, verbose=args.verbose)
+        res = install_wheel(info.path, verbose=args.verbose)
         results.append(res)
         status = "OK" if res.success else f"FAILED: {res.message}"
         print(status)
@@ -111,6 +148,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     install_parser.add_argument(
         "-v", "--verbose", action="store_true", help="Show pip install output"
+    )
+    install_parser.add_argument(
+        "--skip-conflict-check",
+        action="store_true",
+        help="Skip version conflict detection",
     )
     install_parser.set_defaults(func=cmd_install)
 

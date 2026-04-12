@@ -19,6 +19,7 @@ def normalize(name: str) -> str:
 
 @dataclass
 class WheelInfo:
+    path: str
     filename: str
     distribution: str
     version: str
@@ -34,6 +35,7 @@ def parse_wheel(path: str) -> WheelInfo:
     if not match:
         raise ValueError(f"Invalid wheel filename: {basename}")
     return WheelInfo(
+        path=path,
         filename=basename,
         distribution=match.group("distribution"),
         version=match.group("version"),

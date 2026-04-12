@@ -45,6 +45,7 @@ class TestParseWheel:
         info = parse_wheel("/tmp/wheels/requests-2.28.0-py3-none-any.whl")
         assert info.distribution == "requests"
         assert info.filename == "requests-2.28.0-py3-none-any.whl"
+        assert info.path == "/tmp/wheels/requests-2.28.0-py3-none-any.whl"
 
     def test_invalid_filename(self):
         with pytest.raises(ValueError, match="Invalid wheel filename"):

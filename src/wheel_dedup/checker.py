@@ -25,3 +25,7 @@ class InstalledChecker:
 
     def is_installed(self, name: str) -> bool:
         return self.get_installed_version(name) is not None
+
+    def get_all_installed(self) -> Dict[str, str]:
+        self._load()
+        return {k: v for k, v in self._cache.items() if v is not None}
