@@ -27,3 +27,10 @@ Single-package project. Source lives in `src/wheel_dedup/`, tests in `tests/`.
 - **`checker._cache` can contain `None`** values (packages with Name but no Version in metadata), but `get_all_installed()` filters them out. Don't read `_cache` directly.
 - **`packaging` is the only third-party dependency** — used for `Requirement` and `Version` parsing in `conflict.py`. Don't add new deps without updating `pyproject.toml`.
 - Build backend is **hatchling**, not setuptools. The package layout uses `src/` convention configured in `[tool.hatch.build.targets.wheel]`.
+
+## CI
+
+- Workflow: `.github/workflows/build.yml` — runs on every push and PR
+- **test** job: 3 OS (ubuntu, macos, windows) × 6 Python (3.8–3.13), `fail-fast: false`
+- **build** job: runs after all tests pass; produces a single `py3-none-any.whl` + sdist
+- Integration tests in `test_integration.py` build real wheel ZIPs on disk (via `tmp_path`) — no mocking of `conflict.py` or `checker.py`
