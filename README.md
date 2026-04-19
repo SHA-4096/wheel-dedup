@@ -1,9 +1,21 @@
 # wheel-dedup
 
 批量安装 wheel 文件时自动跳过已安装的包，并在安装前检测版本冲突。
+适用场景为，在离线服务器已有的环境下，批量安装从别的机器上下载下来的wheel包，并避免已安装的包被覆盖安装
 
 ## 安装
 
+### 1. 通过Pypi安装
+在有网络的服务器上，执行
+```bash
+pip download wheel-dedup
+```
+即可将可安装wheel下载下来
+
+### 2. 通过Release页面安装
+直接从Release页面下载编译好的wheel
+
+### 3. 从源码安装
 ```bash
 pip install .
 # 或开发模式
@@ -11,6 +23,8 @@ pip install -e ".[dev]"
 ```
 
 要求 Python >= 3.8，唯一第三方依赖为 `packaging`。
+
+>pip install使用的后端为hatchling，如果离线服务器上没有这个包，则无法正常安装，这种情况下，请使用第一种或第二种方法安装
 
 ## 用法
 
